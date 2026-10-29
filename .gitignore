@@ -4,7 +4,7 @@ __pycache__/
 *.egg-info/
 build/
 dist/
-.docs/
+docs/*
 
 # Salidas generadas: conservar el catálogo del corpus en Git.
 data/processed/results/*
