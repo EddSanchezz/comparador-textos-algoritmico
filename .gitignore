@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Salidas generadas: conservar el catálogo del corpus en Git.
+data/processed/results/*
+!data/processed/results/.gitkeep
+
+# Los modelos preentrenados se descargan aparte y no se versionan.
+models/
