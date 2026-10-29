@@ -1,15 +1,4 @@
-.venv/
 __pycache__/
-*.py[cod]
-*.egg-info/
-build/
-dist/
-# Salidas generadas: conservar las carpetas y sus archivos .gitkeep.
-data/processed/results/**
-!data/processed/results/
-!data/processed/results/**/
-!data/processed/results/.gitkeep
-!data/processed/results/**/.gitkeep
-
-# Los modelos preentrenados se descargan aparte y no se versionan.
-models/
+*.pyc
+.venv/
+.streamlit/
