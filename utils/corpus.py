@@ -1,51 +1,57 @@
-"""Carga y preparación del catálogo de artículos del corpus."""
+"""Prepara y carga los abstracts del corpus."""
 
 import json
 from pathlib import Path
 
-from utils.pdf_extractor import extract_all_from_directory
+from utils.pdf_extractor import extract_all_from_directory, validate_extraction
 
 PROJECT_DIRECTORY = Path(__file__).resolve().parents[1]
-RAW_PDF_DIRECTORY = PROJECT_DIRECTORY / "data" / "raw"
-PROCESSED_DIRECTORY = PROJECT_DIRECTORY / "data" / "processed"
-CATALOG_PATH = PROCESSED_DIRECTORY / "articles.json"
+PDF_DIRECTORY = PROJECT_DIRECTORY / "data" / "raw"
+CATALOG_PATH = PROJECT_DIRECTORY / "data" / "processed" / "articles.json"
 
 
-def build_catalog(
-    pdf_directory: Path = RAW_PDF_DIRECTORY,
-    catalog_path: Path = CATALOG_PATH,
-) -> list[dict]:
-    """Extrae los datos de los PDF y guarda el catálogo como JSON."""
-    pdf_directory = Path(pdf_directory)
-    catalog_path = Path(catalog_path)
+def build_catalog():
+    """Extrae los artículos de los PDF y los guarda como JSON."""
+    if not PDF_DIRECTORY.is_dir():
+        raise FileNotFoundError(f"No existe la carpeta: {PDF_DIRECTORY}")
 
-    if not pdf_directory.is_dir():
-        raise FileNotFoundError(f"No existe la carpeta de PDF: {pdf_directory}")
+    articles = extract_all_from_directory(PDF_DIRECTORY)
+    if not articles:
+        raise FileNotFoundError(f"No hay archivos PDF en: {PDF_DIRECTORY}")
 
-    records = extract_all_from_directory(pdf_directory)
-    if not records:
-        raise FileNotFoundError(f"No se encontraron archivos PDF en: {pdf_directory}")
+    CATALOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with CATALOG_PATH.open("w", encoding="utf-8") as catalog_file:
+        json.dump(articles, catalog_file, ensure_ascii=False, indent=2)
 
-    catalog_path.parent.mkdir(parents=True, exist_ok=True)
-    with catalog_path.open("w", encoding="utf-8") as catalog_file:
-        json.dump(records, catalog_file, ensure_ascii=False, indent=2)
-
-    return records
+    return articles
 
 
-def load_catalog(catalog_path: Path = CATALOG_PATH) -> list[dict]:
-    """Lee el catálogo JSON generado desde los PDF."""
-    catalog_path = Path(catalog_path)
-    if not catalog_path.is_file():
-        raise FileNotFoundError(
-            f"No existe el catálogo: {catalog_path}. "
-            "Créalo con `python -m utils.prepare_corpus`."
-        )
+def load_catalog():
+    """Carga los artículos que ya fueron extraídos."""
+    if not CATALOG_PATH.is_file():
+        raise FileNotFoundError("Ejecuta `python -m utils.corpus` para crear el catálogo.")
 
-    with catalog_path.open("r", encoding="utf-8") as catalog_file:
-        records = json.load(catalog_file)
+    with CATALOG_PATH.open("r", encoding="utf-8") as catalog_file:
+        return json.load(catalog_file)
 
-    if not isinstance(records, list):
-        raise ValueError("El catálogo debe contener una lista de artículos.")
 
-    return records
+def main():
+    articles = build_catalog()
+    abstract_count = 0
+
+    for article in articles:
+        if article["abstract"]:
+            abstract_count += 1
+        for warning in article["warnings"]:
+            print(f"Advertencia en {article['file']}: {warning}")
+
+    for problem in validate_extraction(articles):
+        print(f"Problema de validación: {problem}")
+
+    print(f"PDF encontrados: {len(articles)}")
+    print(f"Abstracts extraídos: {abstract_count}")
+    print("Catálogo guardado en data/processed/articles.json")
+
+
+if __name__ == "__main__":
+    main()

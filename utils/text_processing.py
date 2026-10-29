@@ -1,4 +1,4 @@
-"""Normalización y separación sencilla de palabras."""
+"""Normaliza abstracts y los separa en palabras."""
 
 import unicodedata
 
@@ -18,38 +18,29 @@ STOP_WORDS = {
     "with", "would", "you", "your",
 }
 
-WORD_JOINERS = {"-", "'", "’"}
 
-
-def normalize_text(text: str) -> str:
-    """Pasa el texto a minúsculas y normaliza sus caracteres Unicode."""
+def normalize_text(text):
+    """Pasa el texto a minúsculas y conserva sus acentos."""
     return unicodedata.normalize("NFC", text.lower())
 
 
-def tokenize_text(text: str, remove_stop_words: bool = False) -> list[str]:
-    """Separa palabras con un recorrido simple, sin expresiones regulares."""
-    normalized_text = normalize_text(text)
+def tokenize_text(text, remove_stop_words=False):
+    """Separa palabras con un recorrido de caracteres, sin expresiones regulares."""
     words = []
-    current_word = []
+    current_word = ""
 
-    for character in normalized_text:
-        if character.isalpha():
-            current_word.append(character)
-        elif character in WORD_JOINERS and current_word:
-            current_word.append(character)
-        else:
-            add_word(words, current_word, remove_stop_words)
-            current_word = []
+    for character in normalize_text(text):
+        if character.isalpha() or (character in "-'’" and current_word):
+            current_word += character
+        elif current_word:
+            word = current_word.strip("-'’")
+            if word and (not remove_stop_words or word not in STOP_WORDS):
+                words.append(word)
+            current_word = ""
 
-    add_word(words, current_word, remove_stop_words)
+    if current_word:
+        word = current_word.strip("-'’")
+        if word and (not remove_stop_words or word not in STOP_WORDS):
+            words.append(word)
+
     return words
-
-
-def add_word(words: list[str], current_word: list[str], remove_stop_words: bool) -> None:
-    """Agrega la palabra actual si no está vacía ni se debe omitir."""
-    word = "".join(current_word).strip("-'’")
-    if not word:
-        return
-    if remove_stop_words and word in STOP_WORDS:
-        return
-    words.append(word)

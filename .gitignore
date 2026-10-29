@@ -4,11 +4,12 @@ __pycache__/
 *.egg-info/
 build/
 dist/
-docs/*
-
-# Salidas generadas: conservar el catálogo del corpus en Git.
-data/processed/results/*
+# Salidas generadas: conservar las carpetas y sus archivos .gitkeep.
+data/processed/results/**
+!data/processed/results/
+!data/processed/results/**/
 !data/processed/results/.gitkeep
+!data/processed/results/**/.gitkeep
 
 # Los modelos preentrenados se descargan aparte y no se versionan.
 models/

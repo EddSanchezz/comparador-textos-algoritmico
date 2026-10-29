@@ -1,63 +1,66 @@
 # Comparador de textos algorítmico
 
-Proyecto académico para comparar abstracts de artículos científicos sobre inteligencia artificial generativa. El desarrollo comienza con el requisito 1: análisis de similitud textual. **Los algoritmos de similitud todavía no están implementados.**
+Proyecto académico para analizar los abstracts de 20 artículos científicos sobre inteligencia artificial generativa. El repositorio contiene el corpus y el esqueleto Python para los requisitos; la aplicación y sus algoritmos todavía están en desarrollo.
+
+## Requisitos
+
+| Requisito | Objetivo | Código previsto | Estado |
+|---|---|---|---|
+| **1. Similitud textual** | Seleccionar al menos dos artículos y comparar sus abstracts con cuatro métodos clásicos y dos enfoques con embeddings. | `rq_1/classic/`, `rq_1/ai/` | Estructura creada; algoritmos pendientes. |
+| **2. Agrupamiento jerárquico** | Agrupar los 20 abstracts, evaluar los grupos y producir tres dendrogramas. | `rq_2/clustering/`, `rq_2/evaluation/`, `rq_2/visualization/` | Estructura creada; selección final de métodos y código pendientes. |
+| **3. Búsqueda de patrones** | Encontrar patrones exactos en los abstracts con KMP, Boyer–Moore y Rabin–Karp. | `rq_3/` | Estructura creada; algoritmos pendientes. |
+| **4. Despliegue y documentación** | Desplegar la aplicación y entregar documentación técnica para cada requisito. | Proceso externo al repositorio. | Pendiente y fuera del código de este repositorio. |
+
+### Métodos previstos para el requisito 1
+
+- **Clásicos:** Jaccard, Dice, Levenshtein normalizado y coseno con TF-IDF.
+- **IA:** Word2Vec y FastText con modelos preentrenados.
+
+Los archivos de algoritmos actuales son solo marcadores vacíos con una descripción; no contienen implementaciones.
 
 ## Estructura
 
 ```text
 data/
-├── raw/                 # PDF originales del corpus
+├── raw/                         # Los 20 PDF originales
 └── processed/
-    ├── articles.json    # Abstracts y metadatos extraídos de los PDF
-    └── results/         # Resultados y gráficas generados por la aplicación
-docs/                    # Guías y documentos del proyecto
-utils/                   # Extracción del corpus y procesamiento de texto
-rq_1/                    # Código del requisito 1
-├── classic/             # Algoritmos clásicos (pendientes)
-└── ai/                  # Enfoques con embeddings (pendientes)
-tests/                   # Pruebas de las utilidades
+    ├── articles.json            # Abstracts y metadatos
+    └── results/                 # Resultados futuros por requisito
+utils/
+├── corpus.py                    # Crear y cargar el catálogo
+├── pdf_extractor.py             # Extraer información de los PDF
+└── text_processing.py           # Normalizar y tokenizar texto
+rq_1/
+├── classic/                     # Jaccard, Dice, Levenshtein, TF-IDF
+└── ai/                          # Word2Vec y FastText
+rq_2/
+├── clustering/                  # Linkage jerárquico
+├── evaluation/                  # Métrica interna
+└── visualization/               # Dendrogramas
+rq_3/                            # KMP, Boyer–Moore y Rabin–Karp
+tests/                           # Espacio para pruebas futuras por requisito
 ```
 
-`rq_1` usa guion bajo para que Python pueda importarlo como paquete. Los ordenamientos Counting Sort, Radix Sort y Bucket Sort del proyecto `algoritmos-seguimiento-1` no se incluyen: ordenan términos por frecuencia y no calculan similitud entre abstracts.
+Se usa `rq_1`, `rq_2` y `rq_3` con guion bajo para que sean paquetes importables de Python. Los algoritmos Counting Sort, Radix Sort y Bucket Sort del proyecto vecino no se incluyen: ordenan términos por frecuencia y no cumplen estos requisitos.
 
-## Requisito 1
+## Preparar el corpus
 
-El requisito pide elegir dos o más artículos y comparar sus abstracts con cuatro algoritmos clásicos y dos enfoques basados en embeddings. La propuesta acordada es:
-
-- Clásicos: Jaccard, Dice, Levenshtein normalizado y coseno con TF-IDF.
-- IA: Word2Vec y FastText, usando vectores preentrenados.
-
-Estos seis métodos aún están pendientes. El extractor y la preparación del corpus ya están disponibles en `utils/`.
-
-## Preparar el proyecto
-
-Se requiere Python 3.11 o posterior.
+Se requiere Python 3.11 o posterior. Desde la raíz del proyecto, en PowerShell:
 
 ```powershell
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 python -m pip install -e .
+python -m utils.corpus
 ```
 
-Extraer el catálogo de abstracts y metadatos desde los PDF:
+El último comando vuelve a extraer los abstracts desde `data/raw/` y genera `data/processed/articles.json`. La extracción puede tardar; no hace falta repetirla hasta que cambien los PDF.
 
-```powershell
-python -m utils.prepare_corpus
-```
+Todavía no hay un punto de entrada para ejecutar la aplicación ni pruebas de los requisitos. Esas partes se agregarán junto con sus implementaciones.
 
-El comando guarda los registros en `data/processed/articles.json` y muestra advertencias de extracción. La lectura y extracción de PDF toma más tiempo que cargar el catálogo; para regenerarlo, vuelve a ejecutar el comando.
+## Decisiones importantes
 
-Ejecutar las pruebas de las utilidades:
-
-```powershell
-python -m unittest discover -s tests -v
-```
-
-## Datos y documentos
-
-- `data/raw/` contiene los 20 artículos PDF originales copiados desde `algoritmos-seguimiento-1/data/raw/`.
-- `data/processed/articles.json` se genera a partir de esos PDF y conserva ID, nombre de archivo, título, autores, abstract y advertencias.
-- `data/processed/results/` queda reservado para salidas futuras; sus archivos generados no se versionan.
-- `docs/Presentacion.pdf` contiene el documento de descripción del proyecto y sus requisitos.
-
-El extractor de PDF se tomó del proyecto vecino y se mantiene aislado en `utils/pdf_extractor/`. El procesamiento de similitud se implementará aparte, de forma explícita y fácil de revisar.
+- `data/raw/` contiene datos que consume el programa. `data/processed/` contiene el catálogo y resultados generados; los resultados se ignoran en Git.
+- El extractor se reutilizó del proyecto vecino porque ya procesa los 20 PDF. Es la parte más compleja por las diferencias de formato entre artículos; está separada de los algoritmos.
+- El código nuevo debe usar nombres claros y cálculos explícitos. En el requisito 3 no se permiten funciones nativas como `find()` o `index()` para resolver la búsqueda.
+- Los análisis técnicos, la declaración del uso de IA y el despliegue se gestionan fuera de este repositorio.
