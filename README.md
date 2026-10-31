@@ -1,14 +1,16 @@
 # Análisis de abstracts científicos
 
-Aplicación local en Streamlit para cargar artículos científicos en PDF y revisar
-los datos extraídos de cada uno.
+Aplicación local en Streamlit para cargar artículos científicos en PDF, revisar
+sus abstracts y comparar su similitud.
 
 ## Funciones
 
 - Carga automática de los PDFs de la carpeta `pdfs/`.
 - Carga manual de otros PDFs desde la interfaz.
-- Extracción del título, los autores y el abstract.
-- Corrección manual del título, los autores y el abstract.
+- Extracción y corrección del título, los autores y el abstract.
+- Similitud entre abstracts con vectores TF-IDF:
+  - Similitud coseno.
+  - Similitud basada en la distancia euclidiana.
 
 ## Instalación y uso
 
@@ -29,10 +31,12 @@ py -3.14 -m streamlit run app.py
 ## Estructura
 
 ```
-app.py           Interfaz de la aplicación
-pdf_reader.py    Extracción de datos desde los PDFs
-pdfs/            Corpus de artículos
-tests/           Pruebas automáticas
+app.py                     Interfaz de la aplicación
+pdf_reader.py              Extracción de datos desde los PDFs
+algorithms/text_processing.py   Separación del texto en palabras
+algorithms/similarity/     Medidas de similitud
+pdfs/                      Corpus de artículos
+tests/                     Pruebas automáticas
 ```
 
 ## Pruebas
