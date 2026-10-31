@@ -8,9 +8,11 @@ sus abstracts y comparar su similitud.
 - Carga automática de los PDFs de la carpeta `pdfs/`.
 - Carga manual de otros PDFs desde la interfaz.
 - Extracción y corrección del título, los autores y el abstract.
-- Similitud entre abstracts con vectores TF-IDF:
-  - Similitud coseno.
-  - Similitud basada en la distancia euclidiana.
+- Cuatro métodos clásicos de similitud entre abstracts:
+  - Distancia de Levenshtein sobre secuencias de palabras.
+  - Similitud coseno con vectores TF-IDF.
+  - Coeficiente de Jaccard.
+  - Similitud a partir de la distancia euclidiana entre vectores TF-IDF.
 
 ## Instalación y uso
 

@@ -1,15 +1,23 @@
 import unittest
 
+from algorithms.similarity.jaccard import jaccard_similarity
+from algorithms.similarity.levenshtein import levenshtein_similarity
 from algorithms.similarity.tfidf import create_tfidf_vectors
 from algorithms.similarity.tfidf_cosine import cosine_similarity
 from algorithms.similarity.tfidf_euclidean import euclidean_similarity
 
 
 class SimilarityTests(unittest.TestCase):
-    def test_tfidf_cosine(self):
+    def test_tfidf_cosine_and_jaccard(self):
         vectors = create_tfidf_vectors(["red blue", "red blue", "green"])
         self.assertAlmostEqual(1.0, cosine_similarity(vectors[0], vectors[1]))
         self.assertAlmostEqual(0.0, cosine_similarity(vectors[0], vectors[2]))
+        self.assertEqual(0.0, jaccard_similarity("red blue", "green"))
+
+    def test_levenshtein_similarity(self):
+        self.assertEqual(1.0, levenshtein_similarity("same text", "same text"))
+        self.assertEqual(0.0, levenshtein_similarity("one", "two"))
+        self.assertEqual(1.0, levenshtein_similarity("", ""))
 
     def test_tfidf_euclidean(self):
         vectors = create_tfidf_vectors(["red blue", "red blue"])

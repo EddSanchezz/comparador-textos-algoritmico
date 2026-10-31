@@ -6,6 +6,8 @@ from pathlib import Path
 
 import streamlit as st
 
+from algorithms.similarity.jaccard import jaccard_similarity
+from algorithms.similarity.levenshtein import levenshtein_similarity
 from algorithms.similarity.tfidf import create_tfidf_vectors
 from algorithms.similarity.tfidf_cosine import cosine_similarity
 from algorithms.similarity.tfidf_euclidean import euclidean_similarity
@@ -162,29 +164,33 @@ with tabs[0]:
         results = []
 
         for first_article, second_article in combinations(selected_articles, 2):
+            first_text = first_article["abstract"]
+            second_text = second_article["abstract"]
             first_vector = vector_by_id[first_article["id"]]
             second_vector = vector_by_id[second_article["id"]]
             results.append(
                 {
                     "Artículo 1": first_article["title"],
                     "Artículo 2": second_article["title"],
+                    "Levenshtein (palabras)": levenshtein_similarity(first_text, second_text),
                     "Coseno TF-IDF": cosine_similarity(first_vector, second_vector),
+                    "Jaccard": jaccard_similarity(first_text, second_text),
                     "Euclidiana TF-IDF": euclidean_similarity(first_vector, second_vector),
                 }
             )
 
-        st.markdown("**Medidas basadas en TF-IDF**")
+        st.markdown("**Cuatro métodos clásicos**")
         st.dataframe(results, width="stretch", hide_index=True)
         st.caption(
-            "TF-IDF asigna más peso a los términos poco comunes del corpus. "
+            "Levenshtein compara palabras; TF-IDF asigna más peso a términos poco comunes. "
             "La similitud euclidiana se calcula como 1 / (1 + distancia)."
         )
 
-        with st.expander("Cómo se calculan las medidas"):
+        with st.expander("Cómo se calculan los métodos clásicos"):
             st.write(
-                "**TF-IDF:** cada abstract se convierte en un vector de palabras. "
-                "La frecuencia del término se multiplica por su importancia inversa "
-                "en el corpus. **Coseno:** mide el ángulo entre dos vectores y vale "
-                "1 cuando son idénticos. **Euclidiana:** mide la distancia entre los "
-                "vectores y se transforma en similitud con 1 / (1 + distancia)."
+                "**Levenshtein:** una matriz de programación dinámica cuenta inserciones, "
+                "eliminaciones y reemplazos entre secuencias de palabras. Se normaliza por "
+                "la longitud mayor. **TF-IDF:** frecuencia de término por importancia "
+                "inversa en el corpus; luego se comparan los vectores con coseno o distancia "
+                "euclidiana. **Jaccard:** palabras compartidas dividido por palabras distintas."
             )
