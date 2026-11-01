@@ -6,6 +6,8 @@ from pathlib import Path
 
 import streamlit as st
 
+from algorithms.similarity.embedding_cosine import embedding_cosine_similarity
+from algorithms.similarity.embedding_euclidean import embedding_euclidean_similarity
 from algorithms.similarity.jaccard import jaccard_similarity
 from algorithms.similarity.levenshtein import levenshtein_similarity
 from algorithms.similarity.tfidf import create_tfidf_vectors
@@ -33,6 +35,14 @@ def pdf_sort_key(pdf_path):
     if number_text.isdigit():
         return 0, int(number_text), pdf_path.name.lower()
     return 1, 0, pdf_path.name.lower()
+
+
+@st.cache_resource
+def load_embedding_model():
+    """Carga el modelo una sola vez y lo reutiliza durante la sesión."""
+    from sentence_transformers import SentenceTransformer
+
+    return SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 
 
 def get_selected_articles(articles, selected_ids):
@@ -193,4 +203,59 @@ with tabs[0]:
                 "la longitud mayor. **TF-IDF:** frecuencia de término por importancia "
                 "inversa en el corpus; luego se comparan los vectores con coseno o distancia "
                 "euclidiana. **Jaccard:** palabras compartidas dividido por palabras distintas."
+            )
+
+        st.markdown("**Dos medidas con embeddings de lenguaje**")
+        st.write(
+            "Se usa un modelo preentrenado para transformar cada abstract en un vector denso. "
+            "La similitud coseno y la distancia euclidiana son dos medidas distintas sobre "
+            "esos embeddings. La primera ejecución puede descargar el modelo."
+        )
+
+        embedding_input = "".join(
+            f"{article['id']}:{article['abstract']}" for article in selected_articles
+        )
+        embedding_signature = sha256(embedding_input.encode("utf-8")).hexdigest()
+
+        if st.button("Calcular similitud con embeddings", key="calculate_embeddings"):
+            try:
+                with st.spinner("Cargando el modelo y calculando embeddings..."):
+                    model = load_embedding_model()
+                    embeddings = model.encode(
+                        [article["abstract"] for article in selected_articles],
+                        convert_to_numpy=True,
+                    )
+
+                embedding_results = []
+                for first_index, second_index in combinations(range(len(selected_articles)), 2):
+                    first_vector = embeddings[first_index]
+                    second_vector = embeddings[second_index]
+
+                    embedding_results.append(
+                        {
+                            "Artículo 1": selected_articles[first_index]["title"],
+                            "Artículo 2": selected_articles[second_index]["title"],
+                            "Coseno de embeddings": embedding_cosine_similarity(
+                                first_vector, second_vector
+                            ),
+                            "Euclidiana de embeddings": embedding_euclidean_similarity(
+                                first_vector, second_vector
+                            ),
+                        }
+                    )
+
+                st.session_state.embedding_results = embedding_results
+                st.session_state.embedding_signature = embedding_signature
+            except Exception as error:
+                st.error(
+                    "No se pudo cargar el modelo de embeddings. Comprueba que instalaste "
+                    "requirements.txt y que hay conexión a Internet para la descarga inicial. "
+                    f"Detalle: {error}"
+                )
+
+        if st.session_state.get("embedding_signature") == embedding_signature:
+            st.dataframe(
+                st.session_state.embedding_results,
+                width="stretch",
+                hide_index=True,
             )

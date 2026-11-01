@@ -13,6 +13,9 @@ sus abstracts y comparar su similitud.
   - Similitud coseno con vectores TF-IDF.
   - Coeficiente de Jaccard.
   - Similitud a partir de la distancia euclidiana entre vectores TF-IDF.
+- Dos medidas sobre embeddings del modelo `all-MiniLM-L6-v2`:
+  - Similitud coseno.
+  - Similitud a partir de la distancia euclidiana.
 
 ## Instalación y uso
 
@@ -22,8 +25,9 @@ Requiere Python 3.14.
 iniciar.bat
 ```
 
-El script instala las dependencias y abre la aplicación en el navegador. También
-se puede iniciar manualmente:
+El script instala las dependencias y abre la aplicación en el navegador. La
+primera vez que se calculan embeddings se descarga el modelo, por lo que hace
+falta conexión a Internet. También se puede iniciar manualmente:
 
 ```bat
 py -3.14 -m pip install -r requirements.txt
@@ -33,12 +37,12 @@ py -3.14 -m streamlit run app.py
 ## Estructura
 
 ```
-app.py                     Interfaz de la aplicación
-pdf_reader.py              Extracción de datos desde los PDFs
+app.py                          Interfaz de la aplicación
+pdf_reader.py                   Extracción de datos desde los PDFs
 algorithms/text_processing.py   Separación del texto en palabras
-algorithms/similarity/     Medidas de similitud
-pdfs/                      Corpus de artículos
-tests/                     Pruebas automáticas
+algorithms/similarity/          Medidas de similitud
+pdfs/                           Corpus de artículos
+tests/                          Pruebas automáticas
 ```
 
 ## Pruebas

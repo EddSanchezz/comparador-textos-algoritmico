@@ -1,7 +1,7 @@
 @echo off
 cd /d "%~dp0"
 
-py -3.14 -c "import streamlit, pymupdf" >nul 2>&1
+py -3.14 -c "import streamlit, pymupdf, sentence_transformers" >nul 2>&1
 if errorlevel 1 (
     echo Instalando las dependencias del proyecto...
     py -3.14 -m pip install -r requirements.txt
