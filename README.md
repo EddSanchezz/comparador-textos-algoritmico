@@ -1,7 +1,7 @@
 # Análisis de abstracts científicos
 
 Aplicación local en Streamlit para cargar artículos científicos en PDF, revisar
-sus abstracts y comparar su similitud.
+sus abstracts, comparar su similitud y agruparlos jerárquicamente.
 
 ## Funciones
 
@@ -16,6 +16,9 @@ sus abstracts y comparar su similitud.
 - Dos medidas sobre embeddings del modelo `all-MiniLM-L6-v2`:
   - Similitud coseno.
   - Similitud a partir de la distancia euclidiana.
+- Agrupamiento jerárquico con Single, Complete y Average Linkage.
+- Dendrograma para cada método y selección del número de grupos con el
+  coeficiente Silhouette.
 
 ## Instalación y uso
 
@@ -41,9 +44,39 @@ app.py                          Interfaz de la aplicación
 pdf_reader.py                   Extracción de datos desde los PDFs
 algorithms/text_processing.py   Separación del texto en palabras
 algorithms/similarity/          Medidas de similitud
+algorithms/clustering/          Agrupamiento jerárquico y Silhouette
+algorithms/dendrogram.py        Dibujo de dendrogramas
 pdfs/                           Corpus de artículos
 tests/                          Pruebas automáticas
 ```
+
+## Métodos
+
+### Similitud
+
+- **Levenshtein:** programación dinámica que cuenta inserciones, eliminaciones y
+  reemplazos entre secuencias de palabras. La similitud normaliza la distancia
+  por la longitud de la secuencia más larga.
+- **TF-IDF:** cada abstract se representa con la frecuencia de cada término
+  multiplicada por su importancia inversa en el corpus.
+- **Coseno:** mide el ángulo entre dos vectores TF-IDF.
+- **Euclidiana:** mide la distancia entre los vectores y la convierte en
+  similitud con `1 / (1 + distancia)`.
+- **Jaccard:** palabras compartidas dividido por el total de palabras distintas.
+- **Embeddings:** un modelo preentrenado transforma cada abstract en un vector
+  denso; sobre esos vectores se aplican coseno y distancia euclidiana.
+
+### Agrupamiento
+
+Cada artículo empieza en su propio grupo y en cada paso se unen los dos grupos
+más cercanos según la distancia coseno entre sus vectores TF-IDF:
+
+- **Single Linkage:** la menor distancia entre los miembros de dos grupos.
+- **Complete Linkage:** la mayor distancia entre los miembros de dos grupos.
+- **Average Linkage:** el promedio de las distancias entre los miembros.
+
+El dendrograma muestra el orden de las uniones y el coeficiente Silhouette
+sugiere cuántos grupos conviene conservar.
 
 ## Pruebas
 
