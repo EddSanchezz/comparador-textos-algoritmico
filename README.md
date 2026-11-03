@@ -1,7 +1,7 @@
 # Análisis de abstracts científicos
 
 Aplicación local en Streamlit para cargar artículos científicos en PDF, revisar
-sus abstracts, comparar su similitud y agruparlos jerárquicamente.
+sus abstracts, comparar su similitud, agruparlos y buscar patrones de texto.
 
 ## Funciones
 
@@ -19,6 +19,8 @@ sus abstracts, comparar su similitud y agruparlos jerárquicamente.
 - Agrupamiento jerárquico con Single, Complete y Average Linkage.
 - Dendrograma para cada método y selección del número de grupos con el
   coeficiente Silhouette.
+- Búsqueda exacta de cadenas con KMP, Boyer-Moore y Rabin-Karp, con el número
+  de ocurrencias, sus posiciones y el tiempo de cada algoritmo.
 
 ## Instalación y uso
 
@@ -45,6 +47,7 @@ pdf_reader.py                   Extracción de datos desde los PDFs
 algorithms/text_processing.py   Separación del texto en palabras
 algorithms/similarity/          Medidas de similitud
 algorithms/clustering/          Agrupamiento jerárquico y Silhouette
+algorithms/search/              Búsqueda exacta de cadenas
 algorithms/dendrogram.py        Dibujo de dendrogramas
 pdfs/                           Corpus de artículos
 tests/                          Pruebas automáticas
@@ -77,6 +80,15 @@ más cercanos según la distancia coseno entre sus vectores TF-IDF:
 
 El dendrograma muestra el orden de las uniones y el coeficiente Silhouette
 sugiere cuántos grupos conviene conservar.
+
+### Búsqueda
+
+- **KMP:** calcula la tabla de prefijos que también son sufijos para no repetir
+  comparaciones.
+- **Boyer-Moore:** compara desde el final del patrón y se desplaza según el
+  último lugar del carácter que no coincidió.
+- **Rabin-Karp:** usa un hash que se actualiza al mover la ventana y verifica los
+  caracteres cuando los hashes coinciden.
 
 ## Pruebas
 

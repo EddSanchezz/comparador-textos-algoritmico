@@ -3,6 +3,7 @@
 from hashlib import sha256
 from itertools import combinations
 from pathlib import Path
+from time import perf_counter
 
 import matplotlib.pyplot as plt
 import streamlit as st
@@ -13,6 +14,9 @@ from algorithms.clustering.hierarchical import pairwise_cosine_distances
 from algorithms.clustering.silhouette import best_silhouette_cut
 from algorithms.clustering.single_linkage import single_linkage
 from algorithms.dendrogram import draw_dendrogram
+from algorithms.search.boyer_moore import boyer_moore_search
+from algorithms.search.kmp import kmp_search
+from algorithms.search.rabin_karp import rabin_karp_search
 from algorithms.similarity.embedding_cosine import embedding_cosine_similarity
 from algorithms.similarity.embedding_euclidean import embedding_euclidean_similarity
 from algorithms.similarity.jaccard import jaccard_similarity
@@ -27,7 +31,7 @@ st.set_page_config(page_title="Análisis bibliométrico", page_icon="📚", layo
 st.title("Análisis de abstracts científicos")
 st.write(
     "Carga los artículos PDF, revisa sus abstracts y ejecuta los algoritmos "
-    "de similitud y agrupamiento."
+    "de similitud, agrupamiento y búsqueda."
 )
 
 
@@ -167,7 +171,7 @@ if not usable_articles:
     st.warning("No se encontraron abstracts. Revisa los PDFs o pega los abstracts en los campos.")
     st.stop()
 
-tabs = st.tabs(["Similitud", "Agrupamiento"])
+tabs = st.tabs(["Similitud", "Agrupamiento", "Búsqueda de patrones"])
 
 with tabs[0]:
     st.subheader("Comparar abstracts")
@@ -352,4 +356,74 @@ with tabs[1]:
             "los cortes se calcula Silhouette, que contrasta la distancia dentro del grupo "
             "con la distancia al grupo vecino. Esta implementación sencilla tarda "
             "aproximadamente O(n³), adecuada para el corpus de 20 artículos."
+        )
+
+with tabs[2]:
+    st.subheader("Coincidencia exacta de cadenas")
+    pattern = st.text_input(
+        "Patrón de búsqueda",
+        placeholder="Por ejemplo: generative AI",
+        key="search_pattern",
+    )
+    ignore_case = st.checkbox("Ignorar mayúsculas y minúsculas", value=True)
+    search_signature_text = f"{pattern}:{ignore_case}:" + "".join(
+        f"{article['id']}:{article['abstract']}" for article in usable_articles
+    )
+    search_signature = sha256(search_signature_text.encode("utf-8")).hexdigest()
+
+    if st.button("Buscar en todos los abstracts", key="run_search"):
+        if not pattern:
+            st.warning("Escribe un patrón no vacío.")
+            st.session_state.pop("search_results", None)
+            st.session_state.pop("search_signature", None)
+        else:
+            search_pattern = pattern.lower() if ignore_case else pattern
+            search_results = []
+
+            for article in usable_articles:
+                search_text = article["abstract"]
+                if ignore_case:
+                    search_text = search_text.lower()
+
+                algorithms_to_run = (
+                    ("KMP", kmp_search),
+                    ("Boyer-Moore", boyer_moore_search),
+                    ("Rabin-Karp", rabin_karp_search),
+                )
+
+                for algorithm_name, search_function in algorithms_to_run:
+                    start_time = perf_counter()
+                    positions = search_function(search_text, search_pattern)
+                    elapsed_time = perf_counter() - start_time
+                    search_results.append(
+                        {
+                            "Artículo": article["title"],
+                            "Algoritmo": algorithm_name,
+                            "Ocurrencias": len(positions),
+                            "Posiciones (desde 1)": [position + 1 for position in positions],
+                            "Tiempo (ms)": elapsed_time * 1000,
+                        }
+                    )
+
+            st.session_state.search_results = search_results
+            st.session_state.search_signature = search_signature
+
+    if st.session_state.get("search_signature") == search_signature:
+        st.dataframe(
+            st.session_state.search_results,
+            width="stretch",
+            hide_index=True,
+        )
+
+    with st.expander("Cómo funcionan los algoritmos de búsqueda"):
+        st.write(
+            "**KMP** calcula prefijos que también son sufijos para evitar repetir "
+            "comparaciones. **Boyer-Moore** compara desde el final del patrón y desplaza "
+            "según el último lugar del carácter que no coincidió. **Rabin-Karp** calcula "
+            "un hash que se actualiza al mover la ventana; verifica los caracteres si los "
+            "hashes coinciden para evitar falsos resultados por colisión. Los tiempos "
+            "mostrados son solo de búsqueda, sin incluir la carga de PDFs. En teoría, "
+            "KMP cuesta O(n + m); Rabin-Karp cuesta O(n + m) en promedio y O(n·m) en el "
+            "peor caso; Boyer-Moore con la regla implementada puede llegar a O(n·m). "
+            "Aquí n es el largo del texto y m el del patrón."
         )
