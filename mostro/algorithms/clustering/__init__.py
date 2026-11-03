@@ -1,1 +1,0 @@
-"""Algoritmos para agrupamiento jerárquico."""
