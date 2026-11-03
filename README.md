@@ -1,7 +1,7 @@
 # Análisis de abstracts científicos
 
 Aplicación local en Streamlit para cargar artículos científicos en PDF, revisar
-sus abstracts y comparar su similitud.
+sus abstracts, comparar su similitud y agruparlos.
 
 ## Funciones
 
@@ -16,6 +16,9 @@ sus abstracts y comparar su similitud.
 - Dos medidas sobre embeddings del modelo `all-MiniLM-L6-v2`:
   - Similitud coseno.
   - Similitud a partir de la distancia euclidiana.
+- Agrupamiento jerárquico con Single, Complete y Average Linkage.
+- Dendrograma para cada método y selección del número de grupos con el
+  coeficiente Silhouette.
 
 ## Instalación y uso
 
@@ -41,6 +44,8 @@ app.py                          Interfaz de la aplicación
 pdf_reader.py                   Extracción de datos desde los PDFs
 algorithms/text_processing.py   Separación del texto en palabras
 algorithms/similarity/          Medidas de similitud
+algorithms/clustering/          Agrupamiento jerárquico y Silhouette
+algorithms/dendrogram.py        Dibujo de dendrogramas
 pdfs/                           Corpus de artículos
 tests/                          Pruebas automáticas
 ```

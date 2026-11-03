@@ -4,23 +4,30 @@ from hashlib import sha256
 from itertools import combinations
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import streamlit as st
 
+from algorithms.clustering.average_linkage import average_linkage
+from algorithms.clustering.complete_linkage import complete_linkage
+from algorithms.clustering.hierarchical import pairwise_cosine_distances
+from algorithms.clustering.silhouette import best_silhouette_cut
+from algorithms.clustering.single_linkage import single_linkage
+from algorithms.dendrogram import draw_dendrogram
 from algorithms.similarity.embedding_cosine import embedding_cosine_similarity
 from algorithms.similarity.embedding_euclidean import embedding_euclidean_similarity
 from algorithms.similarity.jaccard import jaccard_similarity
 from algorithms.similarity.levenshtein import levenshtein_similarity
-from algorithms.similarity.tfidf import create_tfidf_vectors
 from algorithms.similarity.tfidf_cosine import cosine_similarity
 from algorithms.similarity.tfidf_euclidean import euclidean_similarity
+from algorithms.similarity.tfidf import create_tfidf_vectors
 from pdf_reader import extract_article
 
 
 st.set_page_config(page_title="Análisis bibliométrico", page_icon="📚", layout="wide")
 st.title("Análisis de abstracts científicos")
 st.write(
-    "Carga los artículos PDF, revisa sus abstracts y compara la similitud "
-    "entre los artículos."
+    "Carga los artículos PDF, revisa sus abstracts y ejecuta los algoritmos "
+    "de similitud y agrupamiento."
 )
 
 
@@ -98,6 +105,8 @@ if file_data:
 
         st.session_state.articles = articles
         st.session_state.upload_signature = signature
+        st.session_state.pop("clustering_results", None)
+        st.session_state.pop("clustering_names", None)
         st.session_state.pop("similarity_articles", None)
 else:
     st.session_state.articles = []
@@ -141,12 +150,24 @@ with st.expander("Revisar artículos y abstracts", expanded=False):
         )
 
 usable_articles = [article for article in articles if article["abstract"].strip()]
+corpus_content = "".join(
+    f"{article['id']}:{article['title']}:{article['abstract']}"
+    for article in usable_articles
+)
+clustering_input_signature = sha256(corpus_content.encode("utf-8")).hexdigest()
+
+if (
+    "clustering_results" in st.session_state
+    and st.session_state.get("clustering_input_signature") != clustering_input_signature
+):
+    st.session_state.pop("clustering_results", None)
+    st.session_state.pop("clustering_names", None)
 
 if not usable_articles:
     st.warning("No se encontraron abstracts. Revisa los PDFs o pega los abstracts en los campos.")
     st.stop()
 
-tabs = st.tabs(["Similitud"])
+tabs = st.tabs(["Similitud", "Agrupamiento"])
 
 with tabs[0]:
     st.subheader("Comparar abstracts")
@@ -171,14 +192,14 @@ with tabs[0]:
             article["id"]: all_vectors[index]
             for index, article in enumerate(usable_articles)
         }
-        results = []
+        classic_results = []
 
         for first_article, second_article in combinations(selected_articles, 2):
             first_text = first_article["abstract"]
             second_text = second_article["abstract"]
             first_vector = vector_by_id[first_article["id"]]
             second_vector = vector_by_id[second_article["id"]]
-            results.append(
+            classic_results.append(
                 {
                     "Artículo 1": first_article["title"],
                     "Artículo 2": second_article["title"],
@@ -190,7 +211,7 @@ with tabs[0]:
             )
 
         st.markdown("**Cuatro métodos clásicos**")
-        st.dataframe(results, width="stretch", hide_index=True)
+        st.dataframe(classic_results, width="stretch", hide_index=True)
         st.caption(
             "Levenshtein compara palabras; TF-IDF asigna más peso a términos poco comunes. "
             "La similitud euclidiana se calcula como 1 / (1 + distancia)."
@@ -259,3 +280,76 @@ with tabs[0]:
                 width="stretch",
                 hide_index=True,
             )
+
+with tabs[1]:
+    st.subheader("Agrupamiento jerárquico de abstracts")
+    st.write(
+        "Se calcula la distancia coseno entre los vectores TF-IDF y se implementan "
+        "Single, Complete y Average Linkage desde cero."
+    )
+
+    if len(usable_articles) < 2:
+        st.info("Se necesitan por lo menos dos abstracts para agrupar artículos.")
+    elif st.button("Ejecutar los tres agrupamientos", key="run_clustering"):
+        article_vectors = create_tfidf_vectors(
+            [article["abstract"] for article in usable_articles]
+        )
+        distance_matrix = pairwise_cosine_distances(article_vectors)
+        clustering_results = {}
+
+        with st.spinner("Construyendo los tres árboles jerárquicos..."):
+            clustering_methods = (
+                ("single", single_linkage),
+                ("complete", complete_linkage),
+                ("average", average_linkage),
+            )
+            for linkage_name, clustering_method in clustering_methods:
+                merges = clustering_method(distance_matrix)
+                cluster_count, score = best_silhouette_cut(distance_matrix, merges)
+                clustering_results[linkage_name] = {
+                    "merges": merges,
+                    "cluster_count": cluster_count,
+                    "score": score,
+                }
+
+        st.session_state.clustering_results = clustering_results
+        st.session_state.clustering_names = [article["title"] for article in usable_articles]
+        st.session_state.clustering_input_signature = clustering_input_signature
+
+    if "clustering_results" in st.session_state:
+        results = st.session_state.clustering_results
+        names = st.session_state.clustering_names
+        score_rows = [
+            {
+                "Método": linkage.title(),
+                "Número de grupos elegido": result["cluster_count"],
+                "Silhouette": result["score"],
+            }
+            for linkage, result in results.items()
+        ]
+        st.markdown("**Comparación de coherencia (mayor Silhouette es mejor)**")
+        st.dataframe(score_rows, width="stretch", hide_index=True)
+
+        for linkage, result in results.items():
+            st.markdown(f"**{linkage.title()} Linkage**")
+            figure = draw_dendrogram(
+                names,
+                result["merges"],
+                f"Dendrograma — {linkage.title()} Linkage",
+            )
+            st.pyplot(figure)
+            plt.close(figure)
+            st.caption(
+                f"Corte sugerido por Silhouette: {result['cluster_count']} grupos. "
+                f"Coeficiente: {result['score']:.3f}."
+            )
+
+    with st.expander("Cómo funciona el agrupamiento"):
+        st.write(
+            "Cada artículo empieza en su propio grupo. En cada paso se unen los dos grupos "
+            "más cercanos: Single usa la menor distancia entre sus miembros, Complete la "
+            "mayor y Average el promedio. El dendrograma dibuja cada unión. Para comparar "
+            "los cortes se calcula Silhouette, que contrasta la distancia dentro del grupo "
+            "con la distancia al grupo vecino. Esta implementación sencilla tarda "
+            "aproximadamente O(n³), adecuada para el corpus de 20 artículos."
+        )
