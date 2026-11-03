@@ -1,3 +1,4 @@
 streamlit
 PyMuPDF
+matplotlib
 sentence-transformers
